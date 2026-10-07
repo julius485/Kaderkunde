@@ -1,0 +1,66 @@
+name: Transfermarkt-Daten aktualisieren
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"   # alle 6 Stunden (während des ersten Komplettdurchlaufs wichtig); später reicht täglich: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: "Laufzeit in Minuten (max. ~330)"
+        default: "320"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tm-update
+  cancel-in-progress: false
+
+env:
+  TM_API_REF: main          # bei Problemen auf eine Release-Version festlegen, z. B. v4.1.0
+  TM_API: http://localhost:8000
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bisherigen Datenstand holen (Branch "data")
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone --depth 1 --branch data "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data || mkdir -p data
+          rm -rf data/.git
+
+      - name: transfermarkt-api starten
+        run: |
+          git clone --depth 1 --branch "$TM_API_REF" https://github.com/felipeall/transfermarkt-api.git tmapi
+          docker build -t tmapi ./tmapi
+          docker run -d --name tmapi -p 8000:8000 tmapi
+          for i in $(seq 1 90); do curl -sf http://localhost:8000/docs > /dev/null && echo "API bereit" && break; sleep 2; done
+          curl -sf http://localhost:8000/docs > /dev/null || (docker logs tmapi; exit 1)
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Daten sammeln
+        run: |
+          pip install -r requirements.txt
+          python scraper/run.py --budget-minutes "${{ github.event.inputs.budget || '320' }}"
+
+      - name: Export für die App
+        run: python scraper/build.py
+
+      - name: Datenstand veröffentlichen
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd data
+          git init -q -b data
+          git add -A
+          git -c user.name="kaderkunde-bot" -c user.email="bot@users.noreply.github.com" commit -q -m "Datenstand $(date -u +%F\ %H:%M)"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
