@@ -1,0 +1,32 @@
+{
+  "from_season": 1995,
+  "requests_per_second": 2,
+  "workers": 3,
+  "refresh_days_active": 7,
+  "fetch_market_value_history": true,
+  "competitions": {
+    "L1": ["Bundesliga", "Deutschland"],
+    "L2": ["2. Bundesliga", "Deutschland"],
+    "L3": ["3. Liga", "Deutschland"],
+    "GB1": ["Premier League", "England"],
+    "GB2": ["Championship", "England"],
+    "ES1": ["LaLiga", "Spanien"],
+    "ES2": ["LaLiga2", "Spanien"],
+    "IT1": ["Serie A", "Italien"],
+    "IT2": ["Serie B", "Italien"],
+    "FR1": ["Ligue 1", "Frankreich"],
+    "FR2": ["Ligue 2", "Frankreich"],
+    "NL1": ["Eredivisie", "Niederlande"],
+    "PO1": ["Liga Portugal", "Portugal"],
+    "BE1": ["Jupiler Pro League", "Belgien"],
+    "SC1": ["Scottish Premiership", "Schottland"],
+    "TR1": ["Süper Lig", "Türkei"],
+    "A1": ["Bundesliga AT", "Österreich"],
+    "C1": ["Super League CH", "Schweiz"],
+    "DK1": ["Superliga DK", "Dänemark"],
+    "GR1": ["Super League GR", "Griechenland"],
+    "MLS1": ["MLS", "USA"],
+    "SA1": ["Saudi Pro League", "Saudi-Arabien"]
+  },
+  "top5": ["GB1", "ES1", "IT1", "L1", "FR1"]
+}
