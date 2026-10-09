@@ -11,6 +11,7 @@ import concurrent.futures as cf
 import datetime as dt
 import json
 import os
+import re
 import threading
 import time
 
@@ -143,6 +144,10 @@ def fetch_player(c, pid, old):
         return None
     tr = c.get(f"/players/{pid}/transfers") or {}
     mvh = c.get(f"/players/{pid}/market_value") if CFG.get("fetch_market_value_history", True) else None
+    nc = c.get(f"/players/{pid}/national_career") or {}
+    senior = [t for t in g(nc, "nationalTeams", default=[]) or [] if not re.search(r"U-?\d{2}|Olymp|B$", g(t, "name", default="") or "")]
+    caps = sum(int(g(t, "appearances", default=0) or 0) for t in senior)
+    nt = senior[0] if senior else {}
     nat = g(prof, "citizenship", "nationality", default=[])
     hist = g(mvh or {}, "marketValueHistory", "history", default=[]) or []
     values = [money(g(h, "marketValue", "value")) for h in hist]
@@ -173,7 +178,10 @@ def fetch_player(c, pid, old):
         "foot": g(prof, "foot", default=(old or {}).get("foot")),
         "height": g(prof, "height", default=(old or {}).get("height")),
         "img": g(prof, "imageUrl", default=(old or {}).get("img")),
-        "caps": g(prof, "nationalTeam.caps", "internationalCaps", "nationalTeam.matches", default=0),
+        "caps": caps,
+        "ntGoals": sum(int(g(t, "goals", default=0) or 0) for t in senior),
+        "ntDebut": parse_date(g(nt, "debut")), "ntLast": parse_date(g(nt, "lastMatch")),
+        "v": 2,
         "club": g(prof, "club.id"),
         "clubName": g(prof, "club.name"),
         "retired": bool(g(prof, "isRetired", default=False)),
@@ -245,8 +253,9 @@ def main():
     new.sort(key=lambda p: -(store.get(p).get("seen") or 0))
     stale = [p for p in ids if store.get(p).get("fetched") and (store.get(p).get("seen") or 0) >= cur - 1
              and not store.get(p).get("retired") and store.get(p)["fetched"] < refresh.isoformat()]
-    queue = new + stale
-    print(f"Spieler: {len(ids)} bekannt, {len(new)} neu, {len(stale)} zu aktualisieren")
+    backfill = [p for p in ids if store.get(p).get("fetched") and store.get(p).get("v", 1) < 2]
+    queue = new + backfill + stale
+    print(f"Spieler: {len(ids)} bekannt, {len(new)} neu, {len(backfill)} Länderspiele nachholen, {len(stale)} zu aktualisieren")
 
     n = 0
     with cf.ThreadPoolExecutor(max_workers=CFG.get("workers", 3)) as ex:

@@ -121,7 +121,7 @@ def main():
                 height = int(height * 100)
             players.append([int(pid), r["name"], NAT.get(nat, nat), pos, SUB.get(sub, sub), r.get("dob") or "", foot(r.get("foot")), height or 0,
                             mio(r.get("mv")), mio(r.get("peak") or r.get("mv")) or 0, int(cur_club or 0), club_comp.get(str(cur_club), ""),
-                            r.get("img") or "", int(r.get("caps") or 0), last, st])
+                            r.get("img") or "", int(r.get("caps") or 0), last, st, r.get("ntDebut") or "", r.get("ntLast") or ""])
 
     clubs = {cid: [club_names.get(cid, "Unbekannt"), club_comp.get(cid, "")] for cid in set(club_names) | set(club_comp)}
     comps = {k: [v[0], v[1]] for k, v in CFG["competitions"].items()}
